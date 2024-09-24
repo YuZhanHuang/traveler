@@ -1,9 +1,9 @@
 import importlib
+import json
 import os
 import pkgutil
 
 from flask import Blueprint
-from flask.json import JSONEncoder as BaseJSONEncoder
 
 
 def register_blueprints(app, package_name, package_path):
@@ -50,72 +50,6 @@ class JsonSerializer:
         for key in extra:
             rv[key] = getattr(self, key, None)
         return rv
-
-
-class LogJSONEncoder(BaseJSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, IPv4Address):
-            return str(obj)
-        elif isinstance(obj, Decimal):
-            return str(obj)
-        elif isinstance(obj, JsonSerializer):
-            return str(obj)
-        elif isinstance(obj, set):
-            return list(obj)
-        elif isinstance(obj, Future):
-            return obj.result()
-        elif isinstance(obj, datetime.datetime):
-            if is_aware(obj):
-                return obj.isoformat()
-            return obj.isoformat() + 'Z'
-        return str(obj)
-
-
-class JSONEncoder(BaseJSONEncoder):
-    """
-    :class:`JSONEncoder` which respects objects that include the
-    :class:`JsonSerializer` mixin.
-    """
-
-    def default(self, obj):
-        if isinstance(obj, IPv4Address):
-            return str(obj)
-        elif isinstance(obj, Decimal):
-            return str(obj.quantize(Decimal('0.01'), ROUND_HALF_UP))
-        elif isinstance(obj, JsonSerializer):
-            return obj.to_json(is_admin=_is_admin())
-        elif isinstance(obj, set):
-            return list(obj)
-        elif isinstance(obj, Future):
-            return obj.result()
-        elif isinstance(obj, datetime.datetime):
-            return Delorean(obj, 'UTC').shift(LOCAL_TZ).datetime.isoformat()
-        elif isinstance(obj, datetime.date):
-            return obj.strftime("%Y-%m-%d")
-
-        return super(JSONEncoder, self).default(obj)
-
-
-def log_json(obj, **kwargs):
-    return json.dumps(obj, cls=LogJSONEncoder, ensure_ascii=False)
-
-
-def _default(self, obj):
-    if isinstance(obj, IPv4Address):
-        return str(obj)
-    elif isinstance(obj, Decimal):
-        return str(obj)
-    elif isinstance(obj, JsonSerializer):
-        return obj.to_json(is_admin=_is_admin())
-    elif isinstance(obj, set):
-        return list(obj)
-    elif isinstance(obj, Future):
-        return obj.result()
-    elif isinstance(obj, datetime.datetime):
-        if is_aware(obj):
-            return obj.isoformat()
-        return obj.isoformat() + 'Z'
-    return super(JSONEncoder, self).default(obj)
 
 
 def load_json(obj):

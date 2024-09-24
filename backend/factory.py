@@ -1,13 +1,7 @@
 import os
-from uuid import uuid4
 
-from flask import Flask, g, has_request_context, request
+from flask import Flask
 
-# from traveler.config import configs
-# from traveler.helper import register_blueprints, JSONEncoder
-# from traveler.core import db, cors, jwt_manager, mail, migrate, ext_celery, redis
-# from traveler.timetools import get_milliseconds
-# from traveler.utils.utils import get_ip
 from backend.config import configs
 from backend.core import db, migrate
 from backend.helper import register_blueprints
@@ -24,8 +18,7 @@ def create_app(package_name, package_path=None, settings_override=None):
 
     # set config
     app.config.from_object(configs[config_name])
-    # FIXME
-    app.json_encoder = JSONEncoder
+
     if settings_override:
         app.config.from_object(settings_override)
 

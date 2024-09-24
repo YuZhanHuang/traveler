@@ -1,5 +1,6 @@
 import os
 
+from flask import abort
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import declarative_base
@@ -13,13 +14,12 @@ metadata = Base.metadata
 # basic setting
 root_dir = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
 
-migrate = Migrate(directory=os.path.join(root_dir, 'dealer_common', 'migrations'))  # FIXME
 db = SQLAlchemy(metadata=metadata)
+migrate = Migrate()
 
 
 class Service:
     __model__ = None
-    __query_params_forbidden__ = []
 
     @classmethod
     def get_service(cls, name):
@@ -97,28 +97,6 @@ class Service:
     def find(self, **kwargs):
         """查找模型數據"""
         return db.session.query(self.__model__).filter_by(**kwargs)
-
-    def search(self, filters, order_by='created', custom=None, sort_type='desc'):
-        """
-        預設時區為台北時間
-        {
-            'date_ge': '2022-10-1T01:45:36',
-            'date_le': '2022-10-3T01:45:36'
-        }
-        or
-        {
-            'date_dr': '2022-10-1T01:45:36 ~ 2022-10-1T01:45:36',
-        }
-        """
-        query = self.to_filter(filters or {})
-        if custom:
-            query.extend(custom)
-
-        if not isinstance(order_by, list):
-            _order_by = [getattr(getattr(self.__model__, order_by), sort_type)()]
-        else:
-            _order_by = map(lambda x: getattr(getattr(self.__model__, x), sort_type)(), order_by)
-        return db.session.query(self.__model__).filter(and_(*query)).order_by(*_order_by)
 
     def first(self, **kwargs):
         """返回查找數據結果的第一項"""

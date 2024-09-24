@@ -30,3 +30,6 @@ def db(app):
             _db.drop_all()
 
 
+@pytest.fixture(scope='function', autouse=True)
+def orders():
+    ...
