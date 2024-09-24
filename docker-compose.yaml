@@ -1,0 +1,31 @@
+version: '3.5'
+
+services:
+  backend:
+    container_name: traveler_service
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: app
+    image: traveler.latest
+    volumes:
+      - .:/app
+    ports:
+      - "127.0.0.1:5050:5000"
+    depends_on:
+      - traveler_db
+
+  db:
+    container_name: traveler_db
+    image: postgres:11.0-alpine
+    volumes:
+      - traveler_db:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_USER: unicorn_user
+      POSTGRES_PASSWORD: magical_password
+      POSTGRES_DB: postgres
+    ports:
+      - "54322:5432"
+
+volumes:
+  traveler_db:
