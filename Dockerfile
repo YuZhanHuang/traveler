@@ -18,7 +18,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
   && apt-get install -y --no-install-recommends curl \
   && python -m venv ${POETRY_HOME} \
   && ${POETRY_HOME}/bin/pip install poetry==${POETRY_VERSION} \
-  && ${POETRY_HOME}/bin/poetry export > requirements.txt \
+  && ${POETRY_HOME}/bin/poetry export --with dev > requirements.txt \
   && pip install --no-cache-dir --disable-pip-version-check --no-warn-script-location --user -r requirements.txt \
   && apt-get clean autoclean \
   && apt-get autoremove --yes \

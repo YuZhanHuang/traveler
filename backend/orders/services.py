@@ -11,11 +11,11 @@ class OrderService(Service):
 
     def _preprocess_params(self, kwargs):
         self.address_data = kwargs.pop('address', None)
-        price = Decimal(kwargs['price'])
+        kwargs['price'] = Decimal(kwargs['price'])
 
         # 如果貨幣不是 USD，則將價格轉換為 TWD 並調整匯率
         if kwargs['currency'] == 'USD':
-            kwargs['price'] = price * 31  # 固定匯率 31
+            kwargs['price'] = Decimal(kwargs['price']) * 31  # 固定匯率 31
 
         if kwargs['price'] > Decimal('2000'):
             raise ValidationError(detail='Price is over 2000')

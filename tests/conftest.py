@@ -1,14 +1,14 @@
 import pytest
 
+from backend import create_app
 from backend.config import configs
-from backend.factory import create_app
 from backend.core import db as _db
 
 
 @pytest.fixture(scope='session', autouse=True)
 def app():
     config = configs['testing']
-    app = create_app(config)
+    app = create_app(settings_override=config)
     return app
 
 
@@ -30,6 +30,12 @@ def db(app):
             _db.drop_all()
 
 
-@pytest.fixture(scope='function', autouse=True)
-def orders():
-    ...
+@pytest.fixture(scope='session')
+def test_client(app):
+    testing_client = app.test_client()
+    ctx = app.app_context()
+    ctx.push()
+    yield testing_client
+    ctx.pop()
+
+
