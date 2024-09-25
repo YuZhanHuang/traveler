@@ -9,4 +9,7 @@ def on_api_error(e):
 
 @errors.app_errorhandler(Exception)
 def on_base_api_error(e):
-    return jsonify({'code': 50000, 'message': 'Internal Service Error'}), 500
+
+    print(f'e {e}', flush=True)
+
+    return jsonify({'code': 50000, 'message': f'Internal Service Error'}), 500

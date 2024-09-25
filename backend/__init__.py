@@ -1,7 +1,7 @@
 from flask import request_started
 
 from backend import factory
-from backend.errors import on_api_error
+from backend.errors import on_api_error, errors
 from backend.exceptions import APIError
 
 

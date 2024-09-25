@@ -2,21 +2,20 @@ version: '3.5'
 
 services:
   backend:
-    container_name: traveler_service
     build:
       context: .
       dockerfile: ./Dockerfile
-      target: app
-    image: traveler.latest
+    image: traveler:latest
     volumes:
-      - .:/app
+      - .:/home/flask/project
     ports:
       - "127.0.0.1:5000:5000"
+    env_file:
+      - .env
     depends_on:
-      - traveler_db
+      - postgres
 
-  db:
-    container_name: traveler_db
+  postgres:
     image: postgres:11.0-alpine
     volumes:
       - traveler_db:/var/lib/postgresql/data/
@@ -25,7 +24,7 @@ services:
       POSTGRES_PASSWORD: magical_password
       POSTGRES_DB: postgres
     ports:
-      - "54322:5432"
+      - "5432:5432"
 
 volumes:
   traveler_db:

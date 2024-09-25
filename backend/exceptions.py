@@ -36,9 +36,10 @@ class APIError(TravelerError):
     status_code = 400
     type = 'invalid_request_error'
     message = ''
+    detail = ''
     code = '400'
 
-    def __init__(self, msg=None, status=None, payload=None):
+    def __init__(self, msg=None, detail=None, status=None, payload=None):
         if msg is None:
             msg = self.message
         if status is None:
@@ -48,7 +49,7 @@ class APIError(TravelerError):
         if payload is None:
             payload = {
                 'failure_code': self.code,
-                'failure_msg': self.message,
+                'failure_msg': self.message if detail is None else detail,
             }
         self.payload = payload
         super(APIError, self).__init__(self.message)

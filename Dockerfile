@@ -1,6 +1,6 @@
 # Base Config
 ARG PYTHON_VERSION=3.9.15
-FROM python:${PYTHON_VERSION}-bullseye as base
+FROM python:${PYTHON_VERSION}-slim as base
 
 # Builder
 FROM base as builder
@@ -47,9 +47,7 @@ USER ${USER}
 VOLUME ${HOME}/project/media
 
 COPY --chown=${USER}:${USER} --from=builder /root/.local ${HOME}/.local
-
-COPY --chown=${USER}:${USER} docker_entrypoint/entrypoint.sh /usr/local/bin/run-server
-
+COPY --chown=${USER}:${USER} docker_entrypoint/service/entrypoint.sh /usr/local/bin/run-server
 COPY --chown=${USER}:${USER} . .
 
 RUN chmod +x /usr/local/bin/run-server /usr/local/bin/run-server

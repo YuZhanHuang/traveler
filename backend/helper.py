@@ -1,9 +1,16 @@
+import datetime
 import importlib
 import json
 import os
 import pkgutil
+from decimal import Decimal, ROUND_HALF_UP
+from ipaddress import IPv4Address
 
+from delorean import Delorean
 from flask import Blueprint
+from flask.json import JSONEncoder as BaseJSONEncoder
+
+from backend.constants import LOCAL_TZ
 
 
 def register_blueprints(app, package_name, package_path):
@@ -43,6 +50,7 @@ class JsonSerializer:
             if key not in hidden:
                 rv[key] = getattr(self, key)
         for key, modifier in modifiers.items():
+            print('key', key, 'modifier', modifier)
             value = getattr(self, key)
             rv[key] = modifier(value, self)
         for key in hidden:
@@ -50,6 +58,29 @@ class JsonSerializer:
         for key in extra:
             rv[key] = getattr(self, key, None)
         return rv
+
+
+class JSONEncoder(BaseJSONEncoder):
+    """
+    :class:`JSONEncoder` which respects objects that include the
+    :class:`JsonSerializer` mixin.
+    """
+
+    def default(self, obj):
+        if isinstance(obj, IPv4Address):
+            return str(obj)
+        elif isinstance(obj, Decimal):
+            return str(obj.quantize(Decimal('0.01'), ROUND_HALF_UP))
+        elif isinstance(obj, JsonSerializer):
+            return obj.to_json()
+        elif isinstance(obj, set):
+            return list(obj)
+        elif isinstance(obj, datetime.datetime):
+            return Delorean(obj, 'UTC').shift(LOCAL_TZ).datetime.isoformat()
+        elif isinstance(obj, datetime.date):
+            return obj.strftime("%Y-%m-%d")
+
+        return super(JSONEncoder, self).default(obj)
 
 
 def load_json(obj):

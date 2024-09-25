@@ -3,9 +3,12 @@ import os
 from flask import abort
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import and_
 from sqlalchemy.orm import declarative_base
 from werkzeug.local import LocalProxy
 
+from backend import timetools
+from backend.constants import LOCAL_TZ
 from backend.signals import signals
 
 Base = declarative_base()
@@ -20,6 +23,7 @@ migrate = Migrate()
 
 class Service:
     __model__ = None
+    __query_params_forbidden__ = []
 
     @classmethod
     def get_service(cls, name):
@@ -62,6 +66,68 @@ class Service:
             self._isinstance(model)
         db.session.add_all(model_list)
         db.session.commit()
+
+    @staticmethod
+    def transform_query_value(field, value, **kwargs):
+        return field, value
+
+    def to_filter(self, filters, tz=LOCAL_TZ, **kwargs):
+        keys = {
+            'k': lambda _attr, _value: _attr.ilike(f'%{_value}%'),
+            'ipp': lambda _attr, _value: _attr.ilike(f'%{_value}'),
+            'ie': lambda _attr, _value: _attr.ilike(f'{_value}%'),
+            'in': lambda _attr, _value: _attr.in_(_value),
+            'ge': lambda _attr, _value: _attr >= _value,
+            'gt': lambda _attr, _value: _attr > _value,
+            'ne': lambda _attr, _value: _attr != _value,
+            'eq': lambda _attr, _value: _attr == _value,
+            'lt': lambda _attr, _value: _attr < _value,
+            'le': lambda _attr, _value: _attr <= _value,
+            'dr': self.parse_dr,
+        }
+        model = self.__model__
+        forbidden_params = self.__query_params_forbidden__
+        ops = []
+
+        for attr, value in filters.items():
+            segments = [attr, 'eq']  # as default value
+            for key in keys:
+                if attr.endswith(f'_{key}'):
+                    segments = attr.rsplit('_', 1)
+
+            field, suffix = segments
+            field, value = self.transform_query_value(field, value, suffix=suffix)
+
+            if field in forbidden_params:
+                continue
+            if suffix in keys and hasattr(model, field):
+                func = keys[suffix]
+                v = func(getattr(model, field), value)
+                if v is not None:
+                    ops.append(v)
+        return ops
+
+    def search(self, filters, order_by='created', custom=None, sort_type='desc'):
+        """
+        預設時區為台北時間
+        {
+            'date_ge': '2022-10-1T01:45:36',
+            'date_le': '2022-10-3T01:45:36'
+        }
+        or
+        {
+            'date_dr': '2022-10-1T01:45:36 ~ 2022-10-1T01:45:36',
+        }
+        """
+        query = self.to_filter(filters or {})
+        if custom:
+            query.extend(custom)
+
+        if not isinstance(order_by, list):
+            _order_by = [getattr(getattr(self.__model__, order_by), sort_type)()]
+        else:
+            _order_by = map(lambda x: getattr(getattr(self.__model__, x), sort_type)(), order_by)
+        return db.session.query(self.__model__).filter(and_(*query)).order_by(*_order_by)
 
     def all(self):
         db.session.commit()
@@ -176,3 +242,14 @@ class Service:
         db.session.delete(model)
         db.session.commit()
         self.dispatch_model_event('deleted', instance=model)
+
+    @staticmethod
+    def parse_dr(attr, value, sep='~'):
+        if sep not in value:
+            return None
+        start, end = [i.strip() for i in value.split(sep)]
+
+        start = timetools.parse_time(start)
+        end = timetools.parse_time(end)
+        if start and end:
+            return and_(start.shift('UTC').datetime <= attr, attr <= end.shift('UTC').datetime)

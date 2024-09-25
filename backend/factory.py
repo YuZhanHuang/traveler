@@ -4,7 +4,7 @@ from flask import Flask
 
 from backend.config import configs
 from backend.core import db, migrate
-from backend.helper import register_blueprints
+from backend.helper import register_blueprints, JSONEncoder
 
 root_dir = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
 template_dir = os.path.join(root_dir, 'admin_dealer', 'templates')
@@ -18,6 +18,7 @@ def create_app(package_name, package_path=None, settings_override=None):
 
     # set config
     app.config.from_object(configs[config_name])
+    app.json_encoder = JSONEncoder
 
     if settings_override:
         app.config.from_object(settings_override)

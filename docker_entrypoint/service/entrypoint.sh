@@ -5,7 +5,7 @@ set -o pipefail
 set -o nounset
 
 postgres_ready() {
-poetry run python << END
+python << END
 import sys
 
 import psycopg2
@@ -19,7 +19,12 @@ try:
         host=os.environ['DB_HOST'],
         port=5432
     )
-except psycopg2.OperationalError:
+    print("os.environ['DB_NAME']", os.environ['DB_NAME'])
+    print("os.environ['DB_USER']", os.environ['DB_USER'])
+    print("os.environ['DB_PASS']", os.environ['DB_PASS'])
+    print("os.environ['DB_HOST']", os.environ['DB_HOST'])
+except Exception as e:
+    print('----- Error -----', e)
     sys.exit(-1)
 sys.exit(0)
 END
@@ -31,4 +36,4 @@ done
 >&2 echo 'PostgreSQL is available'
 
 flask db upgrade
-gunicorn app:app -b 0.0.0.0:5000 --worker-class gevent --log-level INFO
+gunicorn --worker-class gevent app:app -b 0.0.0.0:5000 --log-level INFO --reload --capture-output --access-logfile -

@@ -1,3 +1,5 @@
+import json
+from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import request, Response, jsonify
@@ -7,19 +9,17 @@ from werkzeug.exceptions import HTTPException
 from backend.exceptions import ValidationError
 
 
-def data_schema(schema: Schema, is_replace=False):
+def data_schema(schema: Schema):
     """request json schema"""
 
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
             try:
-                # FIXME 修正 load_json 我記得有新的寫法
-                json_data = schema(load_json(request.json))
-                if is_replace:
-                    request.json_data = json_data
+                schema(request.json)
             except Invalid as e:
-                raise ValidationError(f'輸入參數錯誤: {e}')
+                print('e', e, e.error_message, e.msg)
+                raise ValidationError(detail=f'{e.error_message}')
             except Exception as e:
                 raise ValidationError('請輸入正確參數')
 
@@ -76,7 +76,7 @@ def paginate(default_per_page=10, max_per_page=50, hidden=None, hidden_info=None
                         tmp.update(obj.to_json(hidden=hidden_info.get(obj.__tablename__, None), public=public))
                     data.append(tmp)
             else:
-                data = [r.to_json(hidden=hidden, public=public, extra=extra) for r in result.items]
+                data = [r.to_json() for r in result.items]
 
             return jsonify({
                 'data': data,
@@ -113,6 +113,28 @@ def route(bp, *args, **kwargs):
                     return rv, status
 
             return jsonify(dict(code=status, data=rv)), status
+
+        return wrapper
+
+    return decorator
+
+
+def customized_query_filter(days=7, fields='created', default_time_interval=False):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            try:
+                _filters = json.loads(request.args.get('filters', '{}'))
+                if not isinstance(_filters, dict):
+                    raise ValidationError(f'{_filters} 格式不正确')
+            except ValueError:
+                _filters = {}
+
+            if not _filters and default_time_interval is True:
+                _filters[f'{fields}_ge'] = datetime.utcnow() - timedelta(days=days)
+
+            kwargs['filters'] = _filters
+            return f(*args, **kwargs)
 
         return wrapper
 
