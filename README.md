@@ -44,11 +44,19 @@
 ## 啟動專案
 
 ### 啟動服務
-1. git clone專案後
+1. 配置環境變數在 `~/traveler/.env`
+   ```
+   SECRET_KEY=5566neverdie
+   DB_USER=unicorn_user
+   DB_PASS=magical_password
+   DB_HOST=postgres
+   DB_NAME=postgres
+   ```
+2. git clone專案後
     ```bash
     docker-compose up -d --build
     ```
-2. API server expose 5000 port，提供以下api
+3. API server expose 5000 port，提供以下api
    1. `/api/order` POST: 創建資料
       1. payload
          ```json
